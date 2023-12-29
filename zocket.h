@@ -34,8 +34,7 @@ void zkt_data_clean(zkt_data* data);
 
 int zkt_data_send(int fd, zkt_data* data);
 int zkt_data_compress_send(int fd, const void* buf, const size_t size, int compression);
-int zkt_data_recv(int fd, zkt_data* data);
-zkt_data* zkt_data_decompress_recv(int fd);
+zkt_data* zkt_data_recv(int fd);
 
 //
 // send and recv

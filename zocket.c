@@ -73,13 +73,7 @@ int zkt_data_compress_send(int fd, const void* buf, const size_t size, int compr
     return ret;
 }
 
-int zkt_data_recv(int fd, zkt_data* data) {
-    int ret = zkt_recv(fd, &data->size, sizeof(size_t));
-    if(ret == -1) return -1;
-    return zkt_recv(fd, &data->buffer, data->size);
-}
-
-zkt_data* zkt_data_decompress_recv(int fd) {
+zkt_data* zkt_data_recv(int fd) {
     zkt_data* temp_data = malloc(sizeof(zkt_data));
 
     if(!temp_data) {
@@ -100,11 +94,11 @@ zkt_data* zkt_data_decompress_recv(int fd) {
     zkt_data* data = zkt_data_decompress(temp_data->buffer, temp_data->size);
 
     if(!data) {
-        free(temp_data);
+        zkt_data_clean(temp_data);
         return NULL;
     }
 
-    free(temp_data);
+    zkt_data_clean(temp_data);
     return data;
 }
 
