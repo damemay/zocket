@@ -30,7 +30,7 @@ return EXIT_SUCCESS;
 zkt_client* client = zkt_client_init("127.0.0.1", "8888");
 if(!client) exit(EXIT_FAILURE);
 zkt_data* data = zkt_data_recv(client->fd);
-if(!data) zkt_err("could not receive data"), exit(EXIT_FAILURE);
+if(!data) exit(EXIT_FAILURE);
 zkt_data_clean(data);
 return EXIT_SUCCESS;
 ```

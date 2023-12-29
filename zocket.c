@@ -66,8 +66,9 @@ int zkt_data_send(int fd, zkt_data* data) {
     return zkt_send(fd, data->buffer, data->size);
 }
 
-int zkt_data_compress_send(int fd, const void* buf, const size_t size, int compression) {
+int zkt_data_send_compress(int fd, const void* buf, const size_t size, int compression) {
     zkt_data* data = zkt_data_compress(buf, size, compression);
+    if(!data) return -1;
     int ret = zkt_data_send(fd, data);
     zkt_data_clean(data);
     return ret;
