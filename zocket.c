@@ -25,8 +25,15 @@ zkt_data* zkt_data_compress(const void* buf, const size_t size, int compression)
         return NULL;
     }
 
-    data->size = estimate;
+    void* new_pointer = realloc(data->buffer, compressed_size);
+    if(!new_pointer) {
+        zkt_err("failed to compress and realloc data. returning data without compression");
+        data->size = estimate;
+        return data;
+    }
 
+    data->buffer = new_pointer;
+    data->size = compressed_size;
     return data;
 }
 
