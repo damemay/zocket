@@ -1,3 +1,4 @@
+#pragma once
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -65,8 +66,11 @@ int zkt_server_accept(zkt_server* server, void (*func)(int));
 //
 
 typedef struct zkt_client {
+    const char* host;
+    const char* port;
     struct addrinfo* ai;
     int fd;
 } zkt_client;
 
 zkt_client* zkt_client_init(const char* host, const char* port);
+void zkt_client_reconnect(zkt_client** client);

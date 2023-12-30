@@ -21,7 +21,7 @@ zkt_data* zkt_data_compress(const void* buf, const size_t size, int compression)
 
     size_t compressed_size = ZSTD_compress(data->buffer, estimate, buf, size, compression);
     if(ZSTD_isError(compressed_size)) {
-        zkt_err("could not compress provided buffer");
+        zkt_verr("could not compress provided buffer: %s", ZSTD_getErrorName(compressed_size));
         return NULL;
     }
 
@@ -44,7 +44,7 @@ zkt_data* zkt_data_decompress(const void* buf, const size_t size) {
         return NULL;
     }
 
-    const size_t estimate = ZSTD_findFrameCompressedSize(buf, size);
+    const size_t estimate = ZSTD_getFrameContentSize(buf, size);
     data->buffer = malloc(estimate);
     if(!data->buffer) {
         zkt_err("could not allocate memory for zkt_data->buffer");
@@ -53,7 +53,7 @@ zkt_data* zkt_data_decompress(const void* buf, const size_t size) {
 
     size_t decompressed_size = ZSTD_decompress(data->buffer, estimate, buf, size);
     if(ZSTD_isError(decompressed_size)) {
-        zkt_err("could not compress provided buffer");
+        zkt_verr("could not decompress provided buffer: %s", ZSTD_getErrorName(decompressed_size));
         return NULL;
     }
 
@@ -83,6 +83,7 @@ int zkt_data_send_compress(int fd, const void* buf, const size_t size, int compr
 
 zkt_data* zkt_data_recv(int fd) {
     zkt_data* temp_data = malloc(sizeof(zkt_data));
+    temp_data->size = 0;
 
     if(!temp_data) {
         zkt_err("could not allocate memory for zkt_data");
@@ -94,7 +95,8 @@ zkt_data* zkt_data_recv(int fd) {
         return NULL;
     }
 
-    if(zkt_recv(fd, &temp_data->buffer, temp_data->size) == -1) {
+    temp_data->buffer = malloc(temp_data->size);
+    if(zkt_recv(fd, temp_data->buffer, temp_data->size) == -1) {
         free(temp_data);
         return NULL;
     }
@@ -131,9 +133,19 @@ int zkt_send(int fd, const void* buf, const size_t size) {
 }
 
 int zkt_recv(int fd, void* buf, const size_t size) {
-    int ret = recv(fd, buf, size, 0);
-    if(ret == -1) perror("zkt:err:recv:");
-    return ret;
+    size_t total = 0, left = size, ret = 0;
+
+    while(total < size) {
+        ret = recv(fd, buf+total, left, 0);
+        if(ret == -1) {
+            perror("zkt:err:recv:");
+            return -1;
+        }
+        total += ret;
+        left -= ret;
+    }
+
+    return total;
 }
 
 // 
@@ -304,14 +316,23 @@ static zkt_client* connect_client(const char* host, const char* port) {
 
 zkt_client* zkt_client_init(const char* host, const char* port) {
     zkt_client* client = connect_client(host, port);
+    client->host = host;
+    client->port = port;
     if(!client) {
         zkt_err("client failed to connect");
         return NULL;
     }
 
     char rip[INET6_ADDRSTRLEN];
-    inet_ntop(client->ai->ai_family, get_in_addr((struct sockaddr*)&client->ai->ai_addr), rip, sizeof(rip));
+    //inet_ntop(client->ai->ai_family, get_in_addr((struct sockaddr*)&client->ai->ai_addr), rip, sizeof(rip));
     zkt_vlog("client connected to address %s:%s", rip, port);
 
     return client;
+}
+
+void zkt_client_reconnect(zkt_client** client) {
+    const char* host = (*client)->host;
+    const char* port = (*client)->port;
+    free(*client);
+    *client = zkt_client_init(host, port);
 }
