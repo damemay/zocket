@@ -1,4 +1,5 @@
 #include "zocket.h"
+#include <netdb.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -282,6 +283,11 @@ int zkt_server_accept(zkt_server* server, void (*func)(int)) {
     return 0;
 }
 
+void zkt_server_clean(zkt_server* server) {
+    freeaddrinfo(server->sai);
+    free(server);
+}
+
 //
 // client specific functions
 //
@@ -340,4 +346,9 @@ void zkt_client_reconnect(zkt_client** client) {
     const char* port = (*client)->port;
     free(*client);
     *client = zkt_client_init(host, port);
+}
+
+void zkt_client_clean(zkt_client* client) {
+    freeaddrinfo(client->ai);
+    free(client);
 }

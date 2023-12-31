@@ -61,6 +61,7 @@ typedef struct zkt_server {
 
 zkt_server* zkt_server_init(const char* port);
 int zkt_server_accept(zkt_server* server, void (*func)(int));
+void zkt_server_clean(zkt_server* server);
 
 //
 // client
@@ -75,3 +76,4 @@ typedef struct zkt_client {
 
 zkt_client* zkt_client_init(const char* host, const char* port);
 void zkt_client_reconnect(zkt_client** client);
+void zkt_client_clean(zkt_client* client);
