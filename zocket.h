@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -26,23 +27,23 @@
 
 typedef struct zkt_data {
     void* buffer;
-    size_t size;
+    uint32_t size;
 } zkt_data;
 
-zkt_data* zkt_data_compress(const void* buf, const size_t size, int compression);
-zkt_data* zkt_data_decompress(const void* buf, const size_t size);
+zkt_data* zkt_data_compress(const void* buf, const uint32_t size, int compression);
+zkt_data* zkt_data_decompress(const void* buf, const uint32_t size);
 void zkt_data_clean(zkt_data* data);
 
 int zkt_data_send(int fd, zkt_data* data);
-int zkt_data_send_compress(int fd, const void* buf, const size_t size, int compression);
+int zkt_data_send_compress(int fd, const void* buf, const uint32_t size, int compression);
 zkt_data* zkt_data_recv(int fd);
 
 //
 // send and recv
 //
 
-int zkt_send(int fd, const void* buf, const size_t size);
-int zkt_recv(int fd, void* buf, const size_t size);
+int zkt_send(int fd, const void* buf, const uint32_t size);
+int zkt_recv(int fd, void* buf, const uint32_t size);
 
 //
 // server

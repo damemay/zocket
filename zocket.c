@@ -1,25 +1,26 @@
 #include "zocket.h"
+#include <stdint.h>
 #include <stdlib.h>
 
 //
 // data specific functions
 //
 
-zkt_data* zkt_data_compress(const void* buf, const size_t size, int compression) {
+zkt_data* zkt_data_compress(const void* buf, const uint32_t size, int compression) {
     zkt_data* data = malloc(sizeof(zkt_data));
     if(!data) {
         zkt_err("could not allocate memory for zkt_data");
         return NULL;
     }
 
-    size_t estimate = ZSTD_compressBound(size);
+    uint32_t estimate = ZSTD_compressBound(size);
     data->buffer = malloc(estimate);
     if(!data->buffer) {
         zkt_err("could not allocate memory for zkt_data->buffer");
         return NULL;
     }
 
-    size_t compressed_size = ZSTD_compress(data->buffer, estimate, buf, size, compression);
+    uint32_t compressed_size = ZSTD_compress(data->buffer, estimate, buf, size, compression);
     if(ZSTD_isError(compressed_size)) {
         zkt_verr("could not compress provided buffer: %s", ZSTD_getErrorName(compressed_size));
         return NULL;
@@ -34,24 +35,25 @@ zkt_data* zkt_data_compress(const void* buf, const size_t size, int compression)
 
     data->buffer = new_pointer;
     data->size = compressed_size;
+
     return data;
 }
 
-zkt_data* zkt_data_decompress(const void* buf, const size_t size) {
+zkt_data* zkt_data_decompress(const void* buf, const uint32_t size) {
     zkt_data* data = malloc(sizeof(zkt_data));
     if(!data) {
         zkt_err("could not allocate memory for zkt_data");
         return NULL;
     }
 
-    const size_t estimate = ZSTD_getFrameContentSize(buf, size);
+    const uint32_t estimate = ZSTD_getFrameContentSize(buf, size);
     data->buffer = malloc(estimate);
     if(!data->buffer) {
         zkt_err("could not allocate memory for zkt_data->buffer");
         return NULL;
     }
 
-    size_t decompressed_size = ZSTD_decompress(data->buffer, estimate, buf, size);
+    uint32_t decompressed_size = ZSTD_decompress(data->buffer, estimate, buf, size);
     if(ZSTD_isError(decompressed_size)) {
         zkt_verr("could not decompress provided buffer: %s", ZSTD_getErrorName(decompressed_size));
         return NULL;
@@ -68,15 +70,16 @@ void zkt_data_clean(zkt_data* data) {
 }
 
 int zkt_data_send(int fd, zkt_data* data) {
-    int ret = zkt_send(fd, &data->size, sizeof(size_t));
+    int ret = zkt_send(fd, &data->size, sizeof(uint32_t));
     if(ret == -1) return -1;
     return zkt_send(fd, data->buffer, data->size);
 }
 
-int zkt_data_send_compress(int fd, const void* buf, const size_t size, int compression) {
+int zkt_data_send_compress(int fd, const void* buf, const uint32_t size, int compression) {
     zkt_data* data = zkt_data_compress(buf, size, compression);
     if(!data) return -1;
     int ret = zkt_data_send(fd, data);
+    zkt_vlog("%d/%u", ret, data->size);
     zkt_data_clean(data);
     return ret;
 }
@@ -90,16 +93,18 @@ zkt_data* zkt_data_recv(int fd) {
         return NULL;
     }
 
-    if(zkt_recv(fd, &temp_data->size, sizeof(size_t)) == -1) {
+    if(zkt_recv(fd, &temp_data->size, sizeof(uint32_t)) == -1) {
         free(temp_data);
         return NULL;
     }
 
     temp_data->buffer = malloc(temp_data->size);
-    if(zkt_recv(fd, temp_data->buffer, temp_data->size) == -1) {
+    int r = zkt_recv(fd, temp_data->buffer, temp_data->size);
+    if(r == -1) {
         free(temp_data);
         return NULL;
     }
+    zkt_vlog("%d/%u", r, temp_data->size);
 
     zkt_data* data = zkt_data_decompress(temp_data->buffer, temp_data->size);
 
@@ -116,7 +121,7 @@ zkt_data* zkt_data_recv(int fd) {
 // send and recv
 //
 
-int zkt_send(int fd, const void* buf, const size_t size) {
+int zkt_send(int fd, const void* buf, const uint32_t size) {
     size_t total = 0, left = size, ret = 0;
 
     while(total < size) {
@@ -132,7 +137,7 @@ int zkt_send(int fd, const void* buf, const size_t size) {
     return total;
 }
 
-int zkt_recv(int fd, void* buf, const size_t size) {
+int zkt_recv(int fd, void* buf, const uint32_t size) {
     size_t total = 0, left = size, ret = 0;
 
     while(total < size) {
