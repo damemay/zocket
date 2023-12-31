@@ -275,7 +275,7 @@ int zkt_server_accept(zkt_server* server, void (*func)(int)) {
         int rfd = server->rfd;
         if(func) func(rfd);
         close(rfd);
-        return 0;
+        exit(0);
     }
 
     close(server->rfd);
